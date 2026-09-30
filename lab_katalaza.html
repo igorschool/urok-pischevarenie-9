@@ -138,7 +138,7 @@
     <button type="button" class="reset" id="reset">Повторить опыт</button>
     <a href="index.html">Меню</a>
   </div>
-  <p class="lead" id="lead">Пипеткой управляет рука: указательный палец ведёт, сжатие с большим берёт каплю или капает. Сначала поднесите палец к пробирке.</p>
+  <p class="lead" id="lead">Пипетка идёт за мышью. Щелчок по пробирке набирает каплю, щелчок по карточке капает. Сначала наберите каплю из пробирки.</p>
   <div class="steps" id="steps">
     <div class="step now">1. Наберите каплю</div>
     <div class="step">2. Сырой картофель</div>
@@ -197,8 +197,8 @@
     </aside>
   </div>
   <div id="handbox">
-    <video id="cam" playsinline muted autoplay></video>
-    <p id="hand">MediaPipe: включаем камеру…</p>
+    <video id="cam" hidden playsinline muted autoplay></video>
+    <p id="hand">Можно и камерой: кнопка ниже. По ссылке урока браузер её разрешает.</p>
     <button type="button" id="cam-btn">Включить камеру</button>
   </div>
   <div id="pipette">
@@ -505,7 +505,7 @@
       document.getElementById("set-temp").classList.remove("show");
       document.getElementById("set-main").classList.add("show");
       lines.innerHTML = "<p>Это модель опыта. В классе перекись капает учитель.</p>";
-      lead.textContent = "Пипеткой управляет рука: указательный палец ведёт, сжатие берёт каплю или капает. Сначала поднесите палец к пробирке.";
+      lead.textContent = "Пипетка идёт за мышью. Щелчок по пробирке набирает каплю, щелчок по карточке капает. Сначала наберите каплю из пробирки.";
       restPipette();
       highlight();
     });
@@ -539,9 +539,9 @@
           : "MediaPipe ещё включается. Подождите разрешение камеры.";
         return;
       }
-      if (typeof Hands === "undefined" || typeof Camera === "undefined") {
+      if (location.protocol === "file:" || typeof Hands === "undefined" || typeof Camera === "undefined") {
         video.hidden = true;
-        hand.textContent = "Библиотека руки не загрузилась. Откройте урок через ОТКРЫТЬ_УРОК.bat, не двойным щелчком по файлу.";
+        hand.textContent = "С этого файла камера молчит. Ведите пипетку мышью.";
         return;
       }
       camStarting = true;
@@ -607,12 +607,11 @@
         camOn = false;
         camStarting = false;
         video.hidden = true;
-        hand.textContent = "Камера не открылась. Разрешите её в браузере и нажмите «Включить камеру». Страницу откройте через ОТКРЫТЬ_УРОК.bat.";
+        hand.textContent = "Камера не открылась. Ведите пипетку мышью.";
       }
     }
 
     document.getElementById("cam-btn").addEventListener("click", () => { startHands(); });
-    startHands();
   </script>
 </body>
 </html>

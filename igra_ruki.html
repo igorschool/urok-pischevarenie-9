@@ -31,6 +31,8 @@
       display:none; z-index: 5;
     }
     video { position: fixed; right: 16px; bottom: 150px; width: 160px; height: 120px; object-fit: cover; border-radius: 12px; transform: scaleX(-1); background:#111; }
+    video[hidden] { display: none; }
+    #cam-btn { font-family: inherit; font-size: 16px; font-weight: 700; background: #FFE38A; color: #111; border: 2px solid #111; border-radius: 10px; padding: 6px 10px; cursor: pointer; }
     #msg { position: fixed; left: 20px; right: 200px; bottom: 148px; font-size: 22px; color: var(--coral); }
     #msg.ok { color: var(--ok); }
   </style>
@@ -39,6 +41,7 @@
   <div class="top">
     <b>Фермент на пищу</b>
     <span id="score">0 / 6</span>
+    <button type="button" id="cam-btn">Камера</button>
     <a href="index.html" style="color:#E7C56A; font-size:18px;">Меню</a>
   </div>
   <div class="board">
@@ -46,13 +49,13 @@
       <img id="food" alt="" src="assets/food_milk.jpg" />
       <div>
         <h1 id="q">Какой фермент?</h1>
-        <p id="sub">Держите палец на нужной карточке. Если камера молчит — просто нажмите её.</p>
+        <p id="sub">Нажмите карточку с нужным ферментом.</p>
       </div>
     </div>
     <div class="enzymes" id="enzymes"></div>
   </div>
   <div id="cursor"></div>
-  <video id="cam" playsinline muted></video>
+  <video id="cam" hidden playsinline muted></video>
   <div id="msg"></div>
 
   <script src="vendor/mediapipe/camera_utils/camera_utils.js"></script>
@@ -155,8 +158,8 @@
 
     async function startHands() {
       const video = document.getElementById("cam");
-      if (typeof Hands === "undefined") {
-        document.getElementById("sub").textContent = "Рука не подключилась. Нажимайте карточки мышкой.";
+      if (location.protocol === "file:" || typeof Hands === "undefined") {
+        document.getElementById("sub").textContent = "С этого файла камера молчит. Нажимайте карточки мышкой.";
         return;
       }
       const hands = new Hands({
@@ -178,6 +181,7 @@
         dwellOn(hit(x, y));
       });
       try {
+        video.hidden = false;
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: false });
         video.srcObject = stream;
         await video.play();
@@ -188,12 +192,13 @@
         });
         camera.start();
       } catch (err) {
+        video.hidden = true;
         document.getElementById("sub").textContent = "Камера не открылась. Нажимайте карточки мышкой.";
       }
     }
 
+    document.getElementById("cam-btn").addEventListener("click", () => { startHands(); });
     show();
-    startHands();
   </script>
 </body>
 </html>
