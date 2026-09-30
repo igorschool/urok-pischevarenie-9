@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Приём Алины</title>
+  <style>
+    :root { --ink:#1C2B2E; --sand:#FFF6E4; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Calibri, "Segoe UI", sans-serif; background: var(--sand); color: var(--ink); }
+    .top { background:#E85D3A; color:#fff; padding: 14px 24px; display:flex; justify-content:space-between; align-items:center; }
+    .top b { font-size: 22px; }
+    .top a { color:#fff; background: transparent; border: 2px solid #fff; border-radius: 10px; font: inherit; font-size: 16px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+    .stage { max-width: 1180px; margin: 0 auto; padding: 18px 22px 40px; }
+    .who { font-size: 14px; letter-spacing:.08em; font-weight: 700; color:#E85D3A; }
+    h1 { margin: 6px 0 14px; font-size: 36px; line-height: 1.15; }
+    .row { display:flex; gap: 18px; align-items: flex-start; }
+    img.portrait { width: 220px; height: 280px; object-fit: cover; border-radius: 18px; }
+    .bubble { background:#fff; border-radius: 18px; padding: 18px 20px; font-size: 26px; line-height: 1.35; flex:1; border: 3px solid #1AA6A6; }
+    .says { font-size: 15px; font-weight: 700; margin-bottom: 6px; color:#1AA6A6; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    button.choice {
+      font: inherit; text-align: left; border: 3px solid #1C2B2E; border-radius: 16px; padding: 14px;
+      cursor: pointer; color:#111; background:#fff; display:flex; gap: 12px; align-items: center; font-size: 22px; font-weight: 700;
+    }
+    button.choice img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; }
+    button.choice small { display:block; font-weight: 700; font-size: 16px; color:#111; }
+    button.choice.milk { background:#D9F3FF; }
+    button.choice.meat { background:#FFD9C8; }
+    button.choice.fat { background:#FFE38A; }
+    button.choice.bread { background:#D8F5D0; }
+    button.choice.on { outline: 4px solid #E85D3A; }
+    .scene { margin-top: 14px; display:grid; gap: 10px; }
+    .patient, .doctor {
+      border-radius: 16px; padding: 14px 16px; font-size: 22px; line-height: 1.35;
+    }
+    .patient { background:#fff; color:#111; }
+    .doctor { background:#1AA6A6; color:#111; }
+    .follow { display:flex; flex-wrap: wrap; gap: 8px; }
+    .follow button {
+      font: inherit; font-size: 18px; font-weight: 700; border-radius: 12px; border: 2px solid #1C2B2E;
+      background:#fff; color:#111; padding: 10px 14px; cursor: pointer;
+    }
+    .follow .go { background:#FFE38A; color:#111; border: 3px solid #1C2B2E; font-size: 22px; font-weight: 700; }
+    .hidden { display:none; }
+    .answer { background:#fff; color:#111; border-radius: 12px; padding: 10px 12px; font-size: 20px; border: 2px solid #1C2B2E; }
+    .goal { background:#fff; border: 3px solid #1C2B2E; border-radius: 16px; padding: 16px 18px; margin-top: 12px; font-size: 26px; line-height: 1.35; color:#111; }
+    .goal b { color:#E85D3A; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <b>Приём Алины</b>
+    <a href="index.html">Меню</a>
+  </div>
+  <div class="stage">
+    <section id="start">
+      <div class="who">УЧЕНИК У ДОСКИ — ВРАЧ</div>
+      <h1>Алина заходит</h1>
+      <div class="row">
+        <img class="portrait" src="assets/doctor_gastro.jpg" alt="" />
+        <div>
+          <div class="bubble">
+            <div class="says">Это читает ученик, за врача</div>
+            <span id="greetLine">Здравствуйте. Проходите, садитесь. Что беспокоит?</span>
+          </div>
+          <div class="bubble" style="margin-top:12px; border-color:#E85D3A;">
+            <div class="says" style="color:#E85D3A;">Это читаете вы, за Алину</div>
+            Живот беспокоит не всегда, только после еды. И не после всякой: иногда бывает вздутие.
+          </div>
+          <div class="follow" style="margin-top:12px;">
+            <button class="go" id="toChoices" type="button">Дальше</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pick" class="hidden">
+      <div class="who">ВЫБЕРИТЕ, ЧТО БОЛИТ</div>
+      <h1>Нажмите жалобу.</h1>
+      <div class="grid" id="choices"></div>
+      <div id="open"></div>
+      <div class="follow" style="margin-top:16px;">
+        <button class="go hidden" id="finish" type="button">Сказать Алине итог</button>
+      </div>
+    </section>
+
+    <section id="end" class="hidden">
+      <div class="who">ВРАЧ ЗАКАНЧИВАЕТ ПРИЁМ</div>
+      <h1 id="endTitle"></h1>
+      <div class="bubble" id="endText"></div>
+      <div class="follow" style="margin-top:16px;">
+        <button class="go" id="toAsk" type="button">Дальше</button>
+      </div>
+    </section>
+
+    <section id="ask" class="hidden">
+      <div class="who">КЛАССУ</div>
+      <h1>Попробуйте назвать тему урока</h1>
+      <div class="follow" style="margin-top:8px;">
+        <button class="go" id="toGoals" type="button">Дальше</button>
+      </div>
+    </section>
+
+    <section id="goals" class="hidden">
+      <div class="who">ТЕМА УРОКА</div>
+      <h1>Пищеварение и ферменты</h1>
+      <div class="who">ЦЕЛИ ОБУЧЕНИЯ</div>
+      <div class="goal"><b>9.1.2.1</b> описывать в деталях процессы пищеварения у человека</div>
+      <div class="goal"><b>9.1.2.2</b> устанавливать взаимосвязь между органическим веществом и соответствующим ферментом в процессе переваривания пищи</div>
+    </section>
+  </div>
+  <script>
+    const CASES = {
+      milk: {
+        cls: "milk",
+        img: "assets/food_milk.jpg",
+        title: "Молоко",
+        sub: "вздутие",
+        patient: "Молоко и мороженое пью — примерно через час начинается вздутие: живот увеличивается, урчит и бурлит.",
+        doctor: "Молоко и мороженое примерно через час дают вздутие: живот увеличивается, урчит и бурлит. Это не желудок. В молоке есть молочный сахар, и желудок его не расщепляет. Поэтому боль не стоит вверху под рёбрами, как от мяса. Вздутие чувствуется по всему животу.",
+        follow: [
+          { q: "Это начинается сразу после еды?", a: "Нет, не сразу. Сначала всё спокойно, а примерно через час живот начинает увеличиваться и урчать." },
+          { q: "Где именно чувствуете?", a: "Не вверху под рёбрами. Вздутие по всему животу, кругом, и сильно урчит." }
+        ],
+        bit: "После молока примерно через час бывает вздутие по всему животу. Это не желудок: молочный сахар желудок не расщепляет."
+      },
+      meat: {
+        cls: "meat",
+        img: "assets/food_meat.jpg",
+        title: "Мясо",
+        sub: "стоит вверху живота",
+        patient: "Мясо ем, и оно будто вот тут стоит, вверху живота, под рёбрами.",
+        doctor: "Мясо у вас стоит вверху живота, прямо под рёбрами. Это место желудка. Мясо — это белок. Во рту белок почти не меняется, перевариваться он начинает в желудке. Поэтому тяжесть чувствуется сверху, а не по всему животу, как вздутие от молока.",
+        follow: [
+          { q: "Хлеб тоже так?", a: "Нет. Хлеб я ем спокойно, от него тяжести нет. Так бывает именно после мяса, вверху живота." },
+          { q: "Покажите ещё раз.", a: "Вот здесь, вверху, под рёбрами. Это не вздутие по всему животу, как от молока." }
+        ],
+        bit: "Мясо стоит вверху, под рёбрами: это желудок, там белок начинает перевариваться."
+      },
+      fat: {
+        cls: "fat",
+        img: "assets/food_fat.jpg",
+        title: "Жирное",
+        sub: "тошнит",
+        patient: "Бешбармак, жирное — тошнит. Тяжесть сверху, и долго не отпускает.",
+        doctor: "После жирного вас тошнит, и тяжесть долго не проходит. Жир не остаётся в желудке: он уходит в тонкую кишку. Там желчь только дробит его на мелкие капли, а расщепляет жир фермент липаза. Пока эта работа не закончится, тяжесть держится. Это не вздутие, как от молока.",
+        follow: [
+          { q: "Долго держится?", a: "Да, долго не проходит. От молока через час начинается вздутие и потом отпускает. От жирного тяжесть держится намного дольше." },
+          { q: "Тошнит или просто тяжело?", a: "И тошнит, и тяжело в животе. После жирного у меня так всегда, и это долго не проходит." }
+        ],
+        bit: "После жирного тошнит и тяжесть долго держится: жир уходит в тонкую кишку, это не вздутие от молока."
+      },
+      bread: {
+        cls: "bread",
+        img: "assets/food_bread.jpg",
+        title: "Хлеб",
+        sub: "почти ничего",
+        patient: "А хлеб ем спокойно. От него ничего такого.",
+        doctor: "Хлеб вы едите спокойно: нет ни тошноты, ни вздутия. В хлебе много крахмала, и с ним у вас всё проходит. Значит, проблема не в любой еде. Плохо бывает от молочного сахара, от белка мяса и от жира, а от хлеба нет.",
+        follow: [
+          { q: "Совсем ничего?", a: "Почти ничего. Иногда просто чувствую, что поела, но тошноты нет и вздутия нет." },
+          { q: "А молоко?", a: "От молока бывает вздутие, живот увеличивается и урчит. От хлеба такого нет." }
+        ],
+        bit: "Хлеб не беспокоит: ни тошноты, ни вздутия, с крахмалом всё проходит."
+      }
+    };
+
+    const opened = [];
+
+    function drawChoices() {
+      const box = document.getElementById("choices");
+      box.innerHTML = "";
+      Object.entries(CASES).forEach(([id, item]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice " + item.cls + (opened.includes(id) ? " on" : "");
+        b.innerHTML = "<img alt='' src='" + item.img + "'><span>" + item.title + "<small>" + item.sub + "</small></span>";
+        b.addEventListener("click", () => openCase(id));
+        box.appendChild(b);
+      });
+    }
+
+    function openCase(id) {
+      const item = CASES[id];
+      if (!opened.includes(id)) opened.push(id);
+      document.getElementById("finish").classList.remove("hidden");
+      const host = document.getElementById("open");
+      host.innerHTML = "";
+      const scene = document.createElement("div");
+      scene.className = "scene";
+      scene.innerHTML =
+        "<div class='patient'><b>Алина.</b> " + item.patient + "</div>" +
+        "<div class='doctor'><b>Врач.</b> " + item.doctor + "</div>";
+      const follow = document.createElement("div");
+      follow.className = "follow";
+      item.follow.forEach((f) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = f.q;
+        b.addEventListener("click", () => {
+          let ans = scene.querySelector(".answer");
+          if (!ans) {
+            ans = document.createElement("div");
+            ans.className = "answer";
+            scene.appendChild(ans);
+          }
+          ans.innerHTML = "<b>Алина.</b> " + f.a;
+        });
+        follow.appendChild(b);
+      });
+      scene.appendChild(follow);
+      host.appendChild(scene);
+      drawChoices();
+    }
+
+    document.getElementById("toChoices").addEventListener("click", () => {
+      document.getElementById("start").classList.add("hidden");
+      document.getElementById("pick").classList.remove("hidden");
+      drawChoices();
+    });
+
+    document.getElementById("finish").addEventListener("click", () => {
+      document.getElementById("pick").classList.add("hidden");
+      document.getElementById("end").classList.remove("hidden");
+      const bits = opened.map((id) => CASES[id].bit).join(" ");
+      const tail = opened.length > 1
+        ? " Я вас поняла. Это разные места, не одна причина. Лекарство сегодня не назначаю."
+        : " Я вас поняла. Лекарство сегодня не назначаю.";
+      document.getElementById("endTitle").textContent = "Врач говорит";
+      document.getElementById("endText").textContent = bits + tail;
+    });
+
+    document.getElementById("toAsk").addEventListener("click", () => {
+      document.getElementById("end").classList.add("hidden");
+      document.getElementById("ask").classList.remove("hidden");
+    });
+
+    document.getElementById("toGoals").addEventListener("click", () => {
+      document.getElementById("ask").classList.add("hidden");
+      document.getElementById("goals").classList.remove("hidden");
+    });
+
+  </script>
+</body>
+</html>

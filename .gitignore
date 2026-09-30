@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+_preview/
+_desk.txt
+_extract.txt
+_pdfs.txt
+_pptx_shapes.txt
+_slide_order.py
+.DS_Store
+Thumbs.db

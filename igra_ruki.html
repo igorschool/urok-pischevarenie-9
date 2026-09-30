@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Фермент на пищу</title>
+  <style>
+    :root { --teal:#0E3B43; --ink:#1C2B2E; --sand:#F6F1EA; --coral:#C4553A; --ok:#1F6F78; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; height:100%; }
+    body { font-family: Calibri, "Segoe UI", sans-serif; background: var(--sand); color: var(--ink); overflow:hidden; }
+    .top { height: 64px; background: var(--teal); color:#fff; display:flex; align-items:center; justify-content:space-between; padding: 0 22px; }
+    .top b { font-size: 22px; }
+    .top span { font-size: 20px; }
+    .board { height: calc(100% - 64px); display:grid; grid-template-rows: 1fr auto; padding: 16px 20px 20px; gap: 14px; }
+    .ask { display:flex; gap: 22px; align-items:center; justify-content:center; }
+    .ask img { width: 220px; height: 220px; object-fit: cover; border-radius: 20px; background:#fff; }
+    .ask h1 { margin:0 0 8px; font-size: 40px; color: var(--teal); }
+    .ask p { margin:0; font-size: 24px; max-width: 640px; }
+    .enzymes { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .enz {
+      background:#fff; border: 3px solid #111; border-radius: 16px;
+      min-height: 110px; font-size: 28px; font-weight: 700; color:#111;
+      display:flex; align-items:center; justify-content:center; text-align:center; padding: 10px;
+      cursor: pointer;
+    }
+    .enz.hot { background: #E7F3F1; }
+    #cursor {
+      position: fixed; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+      border: 4px solid var(--coral); border-radius: 50%; pointer-events: none;
+      display:none; z-index: 5;
+    }
+    video { position: fixed; right: 16px; bottom: 150px; width: 160px; height: 120px; object-fit: cover; border-radius: 12px; transform: scaleX(-1); background:#111; }
+    #msg { position: fixed; left: 20px; right: 200px; bottom: 148px; font-size: 22px; color: var(--coral); }
+    #msg.ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <b>Фермент на пищу</b>
+    <span id="score">0 / 6</span>
+    <a href="index.html" style="color:#E7C56A; font-size:18px;">Меню</a>
+  </div>
+  <div class="board">
+    <div class="ask">
+      <img id="food" alt="" src="assets/food_milk.jpg" />
+      <div>
+        <h1 id="q">Какой фермент?</h1>
+        <p id="sub">Держите палец на нужной карточке. Если камера молчит — просто нажмите её.</p>
+      </div>
+    </div>
+    <div class="enzymes" id="enzymes"></div>
+  </div>
+  <div id="cursor"></div>
+  <video id="cam" playsinline muted></video>
+  <div id="msg"></div>
+
+  <script src="vendor/mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="vendor/mediapipe/hands/hands.js"></script>
+  <script>
+    const ROUNDS = [
+      { img: "assets/food_milk.jpg", q: "Алина выпила молоко. Что его расщепляет?", a: "лактаза", why: "В молоке молочный сахар, лактоза. Его расщепляет лактаза в тонкой кишке. Пепсин молоко не расщепляет, поэтому и бывает вздутие." },
+      { img: "assets/food_bread.jpg", q: "Она съела хлеб. Что расщепляет крахмал?", a: "амилаза", why: "В хлебе много крахмала. Крахмал расщепляет амилаза, поэтому от хлеба у Алины нет вздутия." },
+      { img: "assets/food_meat.jpg", q: "Мясо стоит в желудке. Что его расщепляет?", a: "пепсин", why: "Мясо — это белок. В желудке белок начинает расщеплять пепсин, поэтому тяжесть чувствуется вверху живота." },
+      { img: "assets/food_fat.jpg", q: "После бешбармака тошнит. Что расщепляет жир?", a: "липаза", why: "Жир расщепляет липаза в тонкой кишке. Желчь только дробит жир на капли, сама его не расщепляет." },
+      { img: "assets/food_bread.jpg", q: "Крахмал уже стал мальтозой. Что расщепляет дальше?", a: "мальтаза", why: "Амилаза превращает крахмал в мальтозу. Дальше мальтозу до глюкозы расщепляет мальтаза." },
+      { img: "assets/food_meat.jpg", q: "Куски белка дошли до тонкой кишки. Что расщепляет их дальше?", a: "пептидазы", why: "Пепсин в желудке только начинает белок. Короткие куски в тонкой кишке до аминокислот доводят пептидазы." }
+    ];
+    const ALL = ["амилаза", "пепсин", "липаза", "лактаза", "мальтаза", "пептидазы"];
+    let round = 0;
+    let score = 0;
+    let lock = false;
+    let dwell = { name: "", t: 0 };
+
+    const enzymes = document.getElementById("enzymes");
+    const msg = document.getElementById("msg");
+    const cursor = document.getElementById("cursor");
+
+    function show() {
+      const r = ROUNDS[round];
+      document.getElementById("food").src = r.img;
+      document.getElementById("q").textContent = r.q;
+      document.getElementById("score").textContent = score + " / " + ROUNDS.length;
+      msg.className = "";
+      msg.textContent = "";
+      enzymes.innerHTML = "";
+      dwell = { name: "", t: 0 };
+      const pool = ALL.filter((x) => x !== r.a);
+      const options = [r.a];
+      for (let k = 0; options.length < 4; k++) options.push(pool[(k + round) % pool.length]);
+      options.sort((a, b) => a.localeCompare(b, "ru"));
+      options.forEach((name) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "enz";
+        b.textContent = name;
+        b.dataset.name = name;
+        b.addEventListener("click", () => answer(name));
+        enzymes.appendChild(b);
+      });
+    }
+
+    function answer(name) {
+      if (lock || round >= ROUNDS.length) return;
+      const r = ROUNDS[round];
+      if (name === r.a) {
+        score += 1;
+        msg.className = "ok";
+        msg.textContent = "Верно. " + r.why;
+        lock = true;
+        dwell = { name: "", t: 0 };
+        setTimeout(() => {
+          lock = false;
+          round += 1;
+          if (round >= ROUNDS.length) {
+            document.getElementById("q").textContent = "Приём окончен";
+            document.getElementById("sub").textContent = "Попали " + score + " из " + ROUNDS.length + ". Можно ещё раз.";
+            enzymes.innerHTML = "";
+            const again = document.createElement("button");
+            again.type = "button";
+            again.className = "enz";
+            again.textContent = "Ещё раз";
+            again.addEventListener("click", () => { round = 0; score = 0; show(); });
+            enzymes.appendChild(again);
+            document.getElementById("score").textContent = score + " / " + ROUNDS.length;
+          } else show();
+        }, 900);
+      } else {
+        msg.className = "";
+        msg.textContent = r.why;
+      }
+    }
+
+    function hit(x, y) {
+      const nodes = enzymes.querySelectorAll(".enz");
+      let found = null;
+      nodes.forEach((n) => {
+        const box = n.getBoundingClientRect();
+        const inside = x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+        n.classList.toggle("hot", inside);
+        if (inside) found = n.dataset.name;
+      });
+      return found;
+    }
+
+    function dwellOn(name) {
+      const now = performance.now();
+      if (!name) { dwell = { name: "", t: 0 }; return; }
+      if (dwell.name !== name) dwell = { name, t: now };
+      else if (now - dwell.t > 700) {
+        dwell = { name: "", t: 0 };
+        answer(name);
+      }
+    }
+
+    async function startHands() {
+      const video = document.getElementById("cam");
+      if (typeof Hands === "undefined") {
+        document.getElementById("sub").textContent = "Рука не подключилась. Нажимайте карточки мышкой.";
+        return;
+      }
+      const hands = new Hands({
+        locateFile: (file) => "vendor/mediapipe/hands/" + file
+      });
+      hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+      hands.onResults((results) => {
+        if (!results.multiHandLandmarks || !results.multiHandLandmarks[0]) {
+          cursor.style.display = "none";
+          dwellOn(null);
+          return;
+        }
+        const tip = results.multiHandLandmarks[0][8];
+        const x = (1 - tip.x) * window.innerWidth;
+        const y = tip.y * window.innerHeight;
+        cursor.style.display = "block";
+        cursor.style.left = x + "px";
+        cursor.style.top = y + "px";
+        dwellOn(hit(x, y));
+      });
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        const camera = new Camera(video, {
+          onFrame: async () => { await hands.send({ image: video }); },
+          width: 640,
+          height: 480
+        });
+        camera.start();
+      } catch (err) {
+        document.getElementById("sub").textContent = "Камера не открылась. Нажимайте карточки мышкой.";
+      }
+    }
+
+    show();
+    startHands();
+  </script>
+</body>
+</html>
